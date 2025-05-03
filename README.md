@@ -1,1 +1,1 @@
-# vk-task
+# VK-task
