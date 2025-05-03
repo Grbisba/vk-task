@@ -3,7 +3,7 @@ package main
 import (
 	"go.uber.org/fx"
 
-	"github.com/vk-task/client/internal/config"
+	"github.com/grbisba/vk-task/client/internal/config"
 )
 
 func main() {
