@@ -2,7 +2,6 @@ package subpub
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"time"
 )
@@ -13,7 +12,7 @@ var (
 
 type PubSub struct {
 	mu         sync.Mutex
-	Subscribed *Subscribers
+	Subscribed *subscribers
 }
 
 // MessageHandler is a callback function that processes messages delivered to subscribers.
@@ -36,6 +35,7 @@ func (ps *PubSub) Subscribe(subject string, mh MessageHandler) (Subscription, er
 				for v := range se.queue {
 					se.mh(v)
 				}
+				se.Unsubscribe()
 				ps.Subscribed.safeDelete(se)
 				return
 			}
@@ -50,12 +50,12 @@ func (ps *PubSub) Publish(subject string, msg interface{}) error {
 	ps.mu.Lock()
 	defer ps.mu.Unlock()
 
-	partitions := ps.Subscribed.get(subject)
-	if partitions == nil || len(partitions) == 0 {
-		return errNoSubscriber
+	p := ps.Subscribed.get(subject)
+	if p == nil || len(p.partitions) == 0 {
+		return errNoSubscribers
 	}
 
-	err := ps.publishData(partitions, msg)
+	err := ps.publishData(p, msg)
 	if err != nil {
 		return err
 	}
@@ -63,44 +63,74 @@ func (ps *PubSub) Publish(subject string, msg interface{}) error {
 	return nil
 }
 
-func (ps *PubSub) publishData(partitions map[int]*subEntity, msg interface{}) error {
+func (ps *PubSub) publishData(p *partitions, msg interface{}) error {
 	var err error
+	pLen := len(p.partitions)
+
+	if pLen == 0 {
+		return errNoSubscribers
+	}
+
 	wg := sync.WaitGroup{}
-	wg.Add(len(partitions))
-	for i := range partitions {
+	wg.Add(pLen)
+
+	for i := range p.partitions {
 		go func(id int) {
 			defer wg.Done()
-			partition := partitions[i]
-			if partition.closed {
+			cp := p.get(id)
+			if cp == nil || cp.closed {
 				err = errNoSubscriber
 				return
 			}
+
 			select {
-			case partition.queue <- msg:
+			case cp.queue <- msg:
 			case <-time.After(time.Second):
-				fmt.Println("TIMEOUT")
+				err = errTimeoutToWrite
+				return
 			}
 		}(i)
 	}
 	wg.Wait()
 
 	return err
+
 }
 
+// Close will shutdown pub-sub system.
+// May be blocked by data delivery until the context is canceled.
 func (ps *PubSub) Close(ctx context.Context) error {
 	if err := ctx.Err(); err != nil {
 		return ctx.Err()
 	}
 
-	ps.mu.Lock()
-	for _, partition := range ps.Subscribed.subs {
-		for _, se := range partition {
-			se.Unsubscribe()
+	done := make(chan struct{})
+	cancel := make(chan struct{})
+	//move lock to under
+	go func(ctx context.Context) {
+		ps.mu.Lock()
+		for _, topic := range ps.Subscribed.getAll() {
+			for _, se := range topic.getAll() {
+				select {
+				case _ = <-cancel:
+					return
+				default:
+					se.Unsubscribe()
+				}
+			}
 		}
-	}
-	ps.mu.Unlock()
+		ps.mu.Unlock()
+		done <- struct{}{}
+	}(ctx)
 
-	return nil
+	select {
+	case <-ctx.Done():
+		cancel <- struct{}{}
+		close(cancel)
+		return ctx.Err()
+	case <-done:
+		return nil
+	}
 }
 
 func NewSubPub() SubPub {

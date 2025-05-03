@@ -2,6 +2,7 @@ package subpub
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 
@@ -33,6 +34,23 @@ func TestPubSub_Subscribe(t *testing.T) {
 		assert.NotPanics(t, func() {
 			sub.Unsubscribe()
 		})
+	})
+	t.Run("positive", func(t *testing.T) {
+		sp := &PubSub{
+			mu:         sync.Mutex{},
+			Subscribed: newSubscribers(),
+		}
+
+		_, err := sp.Subscribe(subjectName, handlerFunc)
+		assert.NoError(t, err)
+
+		sp.Subscribed.add(newSubEntity(subjectName, handlerFunc))
+		se := sp.Subscribed.get(subjectName).get(0)
+
+		go func() {
+			se.close <- struct{}{}
+			se.queue <- message
+		}()
 	})
 }
 
@@ -70,15 +88,34 @@ func TestPubSub_Publish(t *testing.T) {
 
 			err := sp.Publish(subjectName, message)
 			if assert.Error(t, err) {
-				assert.ErrorIs(t, err, errNoSubscriber)
+				assert.ErrorIs(t, err, errNoSubscribers)
 			}
 		})
+	})
+	t.Run("negative:errTimeoutToWrite", func(t *testing.T) {
+		sp := &PubSub{
+			mu:         sync.Mutex{},
+			Subscribed: newSubscribers(),
+		}
+
+		sp.Subscribed.add(newSubEntity(subjectName, handlerFunc))
+		se := sp.Subscribed.get(subjectName).get(0)
+
+		go func() {
+			se.queue <- message
+		}()
+
+		err := sp.Publish(subjectName, message)
+		if assert.Error(t, err) {
+			assert.ErrorIs(t, err, errTimeoutToWrite)
+		}
 	})
 }
 
 func TestPubSub_Close(t *testing.T) {
 	t.Run("positive", func(t *testing.T) {
 		sp := &PubSub{
+			mu:         sync.Mutex{},
 			Subscribed: newSubscribers(),
 		}
 
@@ -96,7 +133,7 @@ func TestPubSub_Close(t *testing.T) {
 		// should wait while subscribe collect data and close chan
 		time.Sleep(100 * time.Millisecond)
 
-		assert.Len(t, sp.Subscribed.subs[subjectName], 0)
+		assert.Len(t, sp.Subscribed.get(subjectName).partitions, 0)
 	})
 	t.Run("negative:context is canceled", func(t *testing.T) {
 		sp := &PubSub{
@@ -143,5 +180,23 @@ func TestPubSub_Close(t *testing.T) {
 
 		err = sp.Publish(subjectName, message)
 		assert.NoError(t, err)
+	})
+	t.Run("negative:context timeout while closing", func(t *testing.T) {
+		sp := &PubSub{
+			Subscribed: newSubscribers(),
+		}
+
+		for range 100 {
+			_, err := sp.Subscribe(subjectName, handlerFunc)
+			assert.NoError(t, err)
+		}
+
+		ctx, _ := context.WithTimeout(context.Background(), time.Nanosecond)
+
+		err := sp.Close(ctx)
+		if assert.Error(t, err) {
+			assert.ErrorIs(t, err, context.DeadlineExceeded)
+		}
+
 	})
 }

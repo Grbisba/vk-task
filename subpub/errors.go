@@ -5,6 +5,7 @@ import (
 )
 
 var (
-	errNoSubscriber   = errors.New("no subscribers found")
-	errTimeoutToWrite = errors.New("timeout to write into queue")
+	errNoSubscribers  = errors.New("no subscribers available")
+	errNoSubscriber   = errors.New("this partition does not have a subscriber")
+	errTimeoutToWrite = errors.New("timeout to write into partition")
 )

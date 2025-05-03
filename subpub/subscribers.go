@@ -35,52 +35,103 @@ func newSubEntity(subject string, mh MessageHandler) *subEntity {
 	}
 }
 
-type Subscribers struct {
+type subscribers struct {
 	mu   sync.RWMutex
-	subs map[string]map[int]*subEntity
+	subs map[string]*partitions
 }
 
-func newSubscribers() *Subscribers {
-	return &Subscribers{
+type partitions struct {
+	mu         sync.RWMutex
+	partitions map[int]*subEntity
+}
+
+func (p *partitions) get(id int) *subEntity {
+	p.mu.RLock()
+	prtn, ok := p.partitions[id]
+	p.mu.RUnlock()
+
+	if !ok {
+		return nil
+	}
+
+	return prtn
+}
+
+func (p *partitions) add(sub *subEntity) {
+	p.mu.Lock()
+	p.partitions[sub.id] = sub
+	p.mu.Unlock()
+	return
+}
+
+func (p *partitions) delete(id int) {
+	p.mu.Lock()
+	delete(p.partitions, id)
+	p.mu.Unlock()
+}
+
+func (p *partitions) getAll() []*subEntity {
+	p.mu.RLock()
+	res := make([]*subEntity, 0, len(p.partitions))
+	for _, sub := range p.partitions {
+		res = append(res, sub)
+	}
+	p.mu.RUnlock()
+	return res
+}
+
+func newSubscribers() *subscribers {
+	return &subscribers{
 		mu:   sync.RWMutex{},
-		subs: make(map[string]map[int]*subEntity),
+		subs: make(map[string]*partitions),
 	}
 }
 
-func (s *Subscribers) add(entity *subEntity) {
+func (s *subscribers) add(entity *subEntity) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	partitions, ok := s.subs[entity.name]
+	p, ok := s.subs[entity.name]
 	if !ok {
-		partitions = make(map[int]*subEntity)
+		p = &partitions{
+			mu:         sync.RWMutex{},
+			partitions: make(map[int]*subEntity),
+		}
 	}
 
-	entity.id = len(partitions)
-	partitions[entity.id] = entity
-	s.subs[entity.name] = partitions
+	entity.id = len(p.partitions)
+	p.add(entity)
+
+	s.subs[entity.name] = p
 }
 
-func (s *Subscribers) get(subject string) map[int]*subEntity {
+func (s *subscribers) get(subject string) *partitions {
 	s.mu.RLock()
-	se, ok := s.subs[subject]
+	p, ok := s.subs[subject]
 	s.mu.RUnlock()
 
 	if !ok {
 		return nil
 	}
 
-	return se
+	return p
 }
 
-func (s *Subscribers) safeDelete(se *subEntity) {
-	s.mu.Lock()
-	delete(s.subs[se.name], se.id)
-	s.mu.Unlock()
+func (s *subscribers) getAll() []*partitions {
+	res := make([]*partitions, 0, len(s.subs))
+
+	s.mu.RLock()
+	for _, sub := range s.subs {
+		res = append(res, sub)
+	}
+	s.mu.RUnlock()
+
+	return res
 }
 
-func (s *Subscribers) cleanup() {
+func (s *subscribers) safeDelete(se *subEntity) {
 	s.mu.Lock()
-	s.subs = make(map[string]map[int]*subEntity)
+	p := s.subs[se.name]
+	p.delete(se.id)
 	s.mu.Unlock()
 }

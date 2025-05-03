@@ -2,6 +2,7 @@ package subpub
 
 import (
 	"fmt"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -61,13 +62,19 @@ func TestSubscribers_addSubscription(t *testing.T) {
 
 		s.add(se)
 
-		assert.Equal(t, 1, len(s.subs[subject]))
-		assert.Equal(t, s.get("123"), map[int]*subEntity{0: se})
+		assert.Equal(t, 1, len(s.get(subject).partitions))
+		assert.Equal(t, s.get("123"), &partitions{
+			mu:         sync.RWMutex{},
+			partitions: map[int]*subEntity{0: se},
+		})
 
 		s.add(se)
 
-		assert.Equal(t, 2, len(s.subs[subject]))
-		assert.Equal(t, s.get("123"), map[int]*subEntity{0: se, 1: se})
+		assert.Equal(t, 2, len(s.get(subject).partitions))
+		assert.Equal(t, s.get("123"), &partitions{
+			mu:         sync.RWMutex{},
+			partitions: map[int]*subEntity{0: se, 1: se},
+		})
 	})
 }
 
@@ -82,15 +89,21 @@ func TestSubscribers_getSubscription(t *testing.T) {
 
 		s.add(se)
 
-		assert.Equal(t, 1, len(s.subs[subject]))
-		assert.Equal(t, s.get("123"), map[int]*subEntity{0: se})
+		assert.Equal(t, 1, len(s.get(subject).partitions))
+		assert.Equal(t, s.get("123"), &partitions{
+			mu:         sync.RWMutex{},
+			partitions: map[int]*subEntity{0: se},
+		})
 
 		s.add(se)
 
-		assert.Equal(t, 2, len(s.subs[subject]))
-		assert.Equal(t, s.get("123"), map[int]*subEntity{0: se, 1: se})
+		assert.Equal(t, 2, len(s.get(subject).partitions))
+		assert.Equal(t, s.get("123"), &partitions{
+			mu:         sync.RWMutex{},
+			partitions: map[int]*subEntity{0: se, 1: se},
+		})
 
-		subs := s.get("123")
+		subs := s.get("123").partitions
 		assert.Equal(t, 2, len(subs))
 		assert.Equal(t, subs[0], se)
 		assert.Equal(t, subs[1], se)
