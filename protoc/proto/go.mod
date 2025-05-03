@@ -1,4 +1,4 @@
-module github.com/vk-task/protoc/proto
+module github.com/grbisba/vk-task/protoc/proto
 
 go 1.24.2
 
