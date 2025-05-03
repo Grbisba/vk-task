@@ -2,7 +2,9 @@ package subpub
 
 import (
 	"context"
+	"fmt"
 	"sync"
+	"time"
 )
 
 var (
@@ -10,7 +12,7 @@ var (
 )
 
 type PubSub struct {
-	mu         sync.RWMutex
+	mu         sync.Mutex
 	Subscribed *Subscribers
 }
 
@@ -31,12 +33,11 @@ func (ps *PubSub) Subscribe(subject string, mh MessageHandler) (Subscription, er
 			case v := <-se.queue:
 				se.mh(v)
 			case <-se.close:
-				ps.mu.Lock()
+				for v := range se.queue {
+					se.mh(v)
+				}
 				ps.Subscribed.safeDelete(se)
-				ps.mu.Unlock()
 				return
-			default:
-				continue
 			}
 		}
 	}()
@@ -54,35 +55,55 @@ func (ps *PubSub) Publish(subject string, msg interface{}) error {
 		return errNoSubscriber
 	}
 
-	ps.publishData(partitions, msg)
-
-	return nil
-}
-
-func (ps *PubSub) publishData(partitions map[int]*subEntity, msg interface{}) {
-	wg := sync.WaitGroup{}
-	wg.Add(len(partitions))
-	for i := range partitions {
-		go func(id int) {
-			defer wg.Done()
-			partition := partitions[i]
-			partition.queue <- msg
-		}(i)
-	}
-	wg.Wait()
-}
-
-func (ps *PubSub) Close(ctx context.Context) error {
-	ps.Subscribed.cleanup()
-
-	if err := ctx.Err(); err != nil {
+	err := ps.publishData(partitions, msg)
+	if err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func NewPubSub() SubPub {
+func (ps *PubSub) publishData(partitions map[int]*subEntity, msg interface{}) error {
+	var err error
+	wg := sync.WaitGroup{}
+	wg.Add(len(partitions))
+	for i := range partitions {
+		go func(id int) {
+			defer wg.Done()
+			partition := partitions[i]
+			if partition.closed {
+				err = errNoSubscriber
+				return
+			}
+			select {
+			case partition.queue <- msg:
+			case <-time.After(time.Second):
+				fmt.Println("TIMEOUT")
+			}
+		}(i)
+	}
+	wg.Wait()
+
+	return err
+}
+
+func (ps *PubSub) Close(ctx context.Context) error {
+	if err := ctx.Err(); err != nil {
+		return ctx.Err()
+	}
+
+	ps.mu.Lock()
+	for _, partition := range ps.Subscribed.subs {
+		for _, se := range partition {
+			se.Unsubscribe()
+		}
+	}
+	ps.mu.Unlock()
+
+	return nil
+}
+
+func NewSubPub() SubPub {
 	s := &PubSub{
 		Subscribed: newSubscribers(),
 	}

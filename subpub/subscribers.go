@@ -7,23 +7,31 @@ import (
 var _ Subscription = (*subEntity)(nil)
 
 type subEntity struct {
-	mh    MessageHandler
-	name  string
-	close chan struct{}
-	queue chan interface{}
-	id    int
+	once   sync.Once
+	mh     MessageHandler
+	name   string
+	close  chan struct{}
+	closed bool
+	queue  chan interface{}
+	id     int
 }
 
 func (s *subEntity) Unsubscribe() {
-	s.close <- struct{}{}
+	s.once.Do(func() {
+		s.close <- struct{}{}
+		s.closed = true
+		close(s.close)
+		close(s.queue)
+	})
 }
 
 func newSubEntity(subject string, mh MessageHandler) *subEntity {
 	return &subEntity{
-		mh:    mh,
-		name:  subject,
-		close: make(chan struct{}),
-		queue: make(chan interface{}),
+		mh:     mh,
+		name:   subject,
+		close:  make(chan struct{}),
+		queue:  make(chan interface{}),
+		closed: false,
 	}
 }
 

@@ -5,5 +5,6 @@ import (
 )
 
 var (
-	errNoSubscriber = errors.New("no subscribers found")
+	errNoSubscriber   = errors.New("no subscribers found")
+	errTimeoutToWrite = errors.New("timeout to write into queue")
 )
