@@ -30,7 +30,7 @@ func newSubEntity(subject string, mh MessageHandler) *subEntity {
 		mh:     mh,
 		name:   subject,
 		close:  make(chan struct{}),
-		queue:  make(chan interface{}),
+		queue:  make(chan interface{}, 100),
 		closed: false,
 	}
 }

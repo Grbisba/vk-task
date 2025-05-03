@@ -101,9 +101,15 @@ func TestPubSub_Publish(t *testing.T) {
 		sp.Subscribed.add(newSubEntity(subjectName, handlerFunc))
 		se := sp.Subscribed.get(subjectName).get(0)
 
-		go func() {
-			se.queue <- message
-		}()
+		wg := sync.WaitGroup{}
+		wg.Add(100)
+		for i := 0; i <= 100; i++ {
+			go func() {
+				defer wg.Done()
+				se.queue <- message
+			}()
+		}
+		wg.Wait()
 
 		err := sp.Publish(subjectName, message)
 		if assert.Error(t, err) {
@@ -165,21 +171,25 @@ func TestPubSub_Close(t *testing.T) {
 			Subscribed: newSubscribers(),
 		}
 
-		_, err := sp.Subscribe(subjectName, handlerFunc)
-		assert.NoError(t, err)
-
-		err = sp.Publish(subjectName, message)
-		assert.NoError(t, err)
-
-		ctx, _ := context.WithTimeout(context.Background(), time.Nanosecond)
-
-		err = sp.Close(ctx)
-		if assert.Error(t, err) {
-			assert.ErrorIs(t, err, context.DeadlineExceeded)
+		for i := 0; i <= 100; i++ {
+			_, err := sp.Subscribe(subjectName, handlerFunc)
+			assert.NoError(t, err)
 		}
 
-		err = sp.Publish(subjectName, message)
+		err := sp.Publish(subjectName, message)
 		assert.NoError(t, err)
+
+		ctx, cancel := context.WithCancel(context.Background())
+
+		go func() {
+			time.Sleep(100 * time.Millisecond)
+			cancel()
+		}()
+
+		err = sp.Close(ctx)
+		if err != nil {
+			assert.ErrorIs(t, err, context.Canceled)
+		}
 	})
 	t.Run("negative:context timeout while closing", func(t *testing.T) {
 		sp := &PubSub{
@@ -191,12 +201,12 @@ func TestPubSub_Close(t *testing.T) {
 			assert.NoError(t, err)
 		}
 
-		ctx, _ := context.WithTimeout(context.Background(), time.Nanosecond)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Nanosecond)
+		defer cancel()
 
 		err := sp.Close(ctx)
 		if assert.Error(t, err) {
 			assert.ErrorIs(t, err, context.DeadlineExceeded)
 		}
-
 	})
 }

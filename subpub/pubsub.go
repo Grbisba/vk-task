@@ -38,6 +38,8 @@ func (ps *PubSub) Subscribe(subject string, mh MessageHandler) (Subscription, er
 				se.Unsubscribe()
 				ps.Subscribed.safeDelete(se)
 				return
+			case <-time.After(3 * time.Minute):
+				return
 			}
 		}
 	}()
@@ -74,10 +76,9 @@ func (ps *PubSub) publishData(p *partitions, msg interface{}) error {
 	wg := sync.WaitGroup{}
 	wg.Add(pLen)
 
-	for i := range p.partitions {
-		go func(id int) {
+	for i, cp := range p.partitions {
+		go func(id int, cp *subEntity) {
 			defer wg.Done()
-			cp := p.get(id)
 			if cp == nil || cp.closed {
 				err = errNoSubscriber
 				return
@@ -89,7 +90,7 @@ func (ps *PubSub) publishData(p *partitions, msg interface{}) error {
 				err = errTimeoutToWrite
 				return
 			}
-		}(i)
+		}(i, cp)
 	}
 	wg.Wait()
 
@@ -106,8 +107,8 @@ func (ps *PubSub) Close(ctx context.Context) error {
 
 	done := make(chan struct{})
 	cancel := make(chan struct{})
-	//move lock to under
-	go func(ctx context.Context) {
+
+	go func() {
 		ps.mu.Lock()
 		for _, topic := range ps.Subscribed.getAll() {
 			for _, se := range topic.getAll() {
@@ -121,12 +122,14 @@ func (ps *PubSub) Close(ctx context.Context) error {
 		}
 		ps.mu.Unlock()
 		done <- struct{}{}
-	}(ctx)
+	}()
 
 	select {
 	case <-ctx.Done():
-		cancel <- struct{}{}
-		close(cancel)
+		go func() {
+			cancel <- struct{}{}
+		}()
+
 		return ctx.Err()
 	case <-done:
 		return nil
