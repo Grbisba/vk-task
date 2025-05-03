@@ -1,4 +1,4 @@
-module github.com/vk-task/subpub
+module github.com/gribisba/vk-task/subpub
 
 go 1.24.2
 
