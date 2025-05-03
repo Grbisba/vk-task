@@ -1,4 +1,4 @@
-module github.com/grbisba/vk-task/client
+module github.com/Grbisba/vk-task/client
 
 go 1.24.2
 
