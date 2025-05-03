@@ -4,9 +4,6 @@ import (
 	"context"
 )
 
-// MessageHandler is a callback function that processes messages delivered to subscribers.
-type MessageHandler func(msg interface{})
-
 type Subscription interface {
 	// Unsubscribe will remove interest in the current subject subscription is for
 	Unsubscribe()
