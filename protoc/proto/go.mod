@@ -1,4 +1,4 @@
-module github.com/grbisba/vk-task/protoc/proto
+module github.com/grbisba/vk-task/protoc/pubsub
 
 go 1.24.2
 
