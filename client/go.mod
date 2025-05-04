@@ -2,8 +2,6 @@ module github.com/Grbisba/vk-task/client
 
 go 1.24.2
 
-replace github.com/Grbisba/vk-task/protoc/proto/pubsub => ../protoc/proto/pubsub
-
 require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/heetch/confita v0.10.0
