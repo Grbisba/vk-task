@@ -2,6 +2,8 @@ module github.com/Grbisba/vk-task/client
 
 go 1.24.2
 
+replace github.com/Grbisba/vk-task/protoc/proto/pubsub => ../protoc/proto/pubsub
+
 require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/heetch/confita v0.10.0
@@ -14,8 +16,6 @@ require (
 
 require (
 	github.com/BurntSushi/toml v1.5.0 // indirect
-	github.com/Grbisba/vk-task v0.0.0-20250504072635-3293f0e97643 // indirect
-	github.com/Grbisba/vk-task/subpub v0.0.0-20250503191912-426d85056b63 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	go.uber.org/dig v1.18.1 // indirect
 	golang.org/x/net v0.39.0 // indirect
@@ -25,3 +25,4 @@ require (
 	google.golang.org/protobuf v1.36.6 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
+

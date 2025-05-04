@@ -6,4 +6,4 @@ tag:
 
 .PHONY: protogen
 protogen:
-	protoc ./proto/pubsub/subpub.proto --go_out=./protoc --go_opt=paths=source_relative --go-grpc_out=./protoc --go-grpc_opt=paths=source_relative
+	protoc ./proto/subpub.proto --go_out=./protoc --go_opt=paths=source_relative --go-grpc_out=./protoc --go-grpc_opt=paths=source_relative
