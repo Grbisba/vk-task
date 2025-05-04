@@ -1,5 +1,5 @@
 syntax = "proto3";
-option go_package = "github.com/Grbisba/vk-task/proto";
+option go_package = "github.com/Grbisba/vk-task/pubsub";
 
 import "google/protobuf/empty.proto";
 
