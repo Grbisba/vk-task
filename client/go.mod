@@ -14,6 +14,7 @@ require (
 
 require (
 	github.com/BurntSushi/toml v1.5.0 // indirect
+	github.com/Grbisba/vk-task v0.0.0-20250504072635-3293f0e97643 // indirect
 	github.com/Grbisba/vk-task/subpub v0.0.0-20250503191912-426d85056b63 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	go.uber.org/dig v1.18.1 // indirect
