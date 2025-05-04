@@ -1,8 +1,7 @@
 syntax = "proto3";
+option go_package = "github.com/Grbisba/vk-task/protoc/proto/pubsub";
 
 import "google/protobuf/empty.proto";
-
-option go_package = "/pubsub";
 
 service PubSub {
   // Подписка (сервер отправляет потом событий)
