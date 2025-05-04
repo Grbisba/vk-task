@@ -15,6 +15,8 @@ github.com/Grbisba/vk-task v0.0.0-20250504072635-3293f0e97643 h1:0D71rn6AbuUxFUH
 github.com/Grbisba/vk-task v0.0.0-20250504072635-3293f0e97643/go.mod h1:uTSAha8QDmd+ODe/cBZxiEyo9oKlZk3ilW5LHT0afD0=
 github.com/Grbisba/vk-task/subpub v0.0.0-20250503191912-426d85056b63 h1:7I/qo1vGAez470m35qot6cOfl7vVlRG1sVl3r5jcklM=
 github.com/Grbisba/vk-task/subpub v0.0.0-20250503191912-426d85056b63/go.mod h1:DEDh8FaEadz8gTQWayRcX5mMT6euvka2EX/ucxuJyfA=
+github.com/Grbisba/vk-task/subpub v1.0.0 h1:Y4SMJ19KTDmfpYhSn720CPe9Tma06rJSwzZ9GpKoXBw=
+github.com/Grbisba/vk-task/subpub v1.0.0/go.mod h1:DEDh8FaEadz8gTQWayRcX5mMT6euvka2EX/ucxuJyfA=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc h1:cAKDfWh5VpdgMhJosfJnn5/FoN2SRZ4p7fJNX58YPaU=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
 github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf h1:qet1QNfXsQxTZqLG4oE62mJzwPIB8+Tee4RNCL9ulrY=

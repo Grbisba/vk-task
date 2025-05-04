@@ -16,6 +16,7 @@ require (
 
 require (
 	github.com/BurntSushi/toml v1.5.0 // indirect
+	github.com/Grbisba/vk-task/subpub v1.0.0 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	go.uber.org/dig v1.18.1 // indirect
 	golang.org/x/net v0.39.0 // indirect
@@ -25,4 +26,3 @@ require (
 	google.golang.org/protobuf v1.36.6 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
-
